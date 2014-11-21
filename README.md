@@ -1,7 +1,7 @@
 go-jsonschema-generator [![Build Status](https://travis-ci.org/mcuadros/go-jsonschema-generator.png?branch=master)](https://travis-ci.org/mcuadros/go-jsonschema-generator) [![GoDoc](http://godoc.org/github.com/mcuadros/go-jsonschema-generator?status.png)](http://godoc.org/github.com/mcuadros/go-jsonschema-generator)
 ==============================
 
-json-schema generator based on Go types
+[json-schema](http://json-schema.org/) generator based on Go types
 
 
 Installation
@@ -19,6 +19,8 @@ Examples
 A basic example:
 
 ```go
+package main
+
 import (
     "fmt"
     "github.com/mcuadros/go-jsonschema-generator"
@@ -30,20 +32,34 @@ type ExampleBasic struct {
     Qux int8
 }
 
-func NewExampleBasic() *ExampleBasic {
-    example := new(ExampleBasic)
-    SetDefaults(example) //<-- This set the defaults values
+func main() {
+    j := &jsonschema.JSONSchema{}
+    j.Load(&ExampleBasic{})
 
-    return example
+    fmt.Println(j)
 }
 
-...
+```
 
-test := NewExampleBasic()
-fmt.Println(test.Foo) //Prints: true
-fmt.Println(test.Bar) //Prints: 33
-fmt.Println(test.Qux) //Prints:
-
+```json
+{
+  "type": "object",
+  "properties": {
+    "Bar": {
+      "type": "string"
+    },
+    "Qux": {
+      "type": "integer"
+    },
+    "foo": {
+      "type": "bool"
+    }
+  },
+  "required": [
+    "foo",
+    "Qux"
+  ]
+}
 ```
 
 License

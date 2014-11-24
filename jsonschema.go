@@ -8,86 +8,90 @@ import (
 
 const DEFAULT_SCHEMA = "http://json-schema.org/schema#"
 
-type JSONSchema struct {
-	Schema               string                 `json:"$schema,omitempty"`
-	Type                 string                 `json:"type,omitempty"`
-	Items                *JSONSchemaItems       `json:"items,omitempty"`
-	Properties           map[string]*JSONSchema `json:"properties,omitempty"`
-	Required             []string               `json:"required,omitempty"`
-	AdditionalProperties bool                   `json:"additionalProperties,omitempty"`
+type Schema struct {
+	Schema string `json:"$schema,omitempty"`
+	property
 }
 
-type JSONSchemaItems struct {
+type item struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (j *JSONSchema) Marshal() ([]byte, error) {
-	return json.MarshalIndent(j, "", "    ")
+func (s *Schema) Marshal() ([]byte, error) {
+	return json.MarshalIndent(s, "", "    ")
 }
 
-func (j *JSONSchema) String() string {
-	json, _ := j.Marshal()
+func (s *Schema) String() string {
+	json, _ := s.Marshal()
 	return string(json)
 }
 
-func (j *JSONSchema) Load(variable interface{}) {
-	j.setDefaultSchema()
+func (s *Schema) Load(variable interface{}) {
+	s.setDefaultSchema()
 
 	value := reflect.ValueOf(variable)
-	j.doLoad(value.Type(), tagOptions(""))
+	s.doLoad(value.Type(), tagOptions(""))
 }
 
-func (j *JSONSchema) setDefaultSchema() {
-	if j.Schema == "" {
-		j.Schema = DEFAULT_SCHEMA
+func (s *Schema) setDefaultSchema() {
+	if s.Schema == "" {
+		s.Schema = DEFAULT_SCHEMA
 	}
 }
 
-func (j *JSONSchema) doLoad(t reflect.Type, opts tagOptions) {
+type property struct {
+	Type                 string               `json:"type,omitempty"`
+	Items                *item                `json:"items,omitempty"`
+	Properties           map[string]*property `json:"properties,omitempty"`
+	Required             []string             `json:"required,omitempty"`
+	AdditionalProperties bool                 `json:"additionalProperties,omitempty"`
+}
+
+func (p *property) doLoad(t reflect.Type, opts tagOptions) {
 	kind := t.Kind()
 
 	if jsType := getTypeFromMapping(kind); jsType != "" {
-		j.Type = jsType
+		p.Type = jsType
 	}
 
 	switch kind {
 	case reflect.Slice:
-		j.doLoadFromSlice(t)
+		p.doLoadFromSlice(t)
 	case reflect.Map:
-		j.doLoadFromMap(t)
+		p.doLoadFromMap(t)
 	case reflect.Struct:
-		j.doLoadFromStruct(t)
+		p.doLoadFromStruct(t)
 	case reflect.Ptr:
-		j.doLoad(t.Elem(), opts)
+		p.doLoad(t.Elem(), opts)
 	}
 }
 
-func (j *JSONSchema) doLoadFromSlice(t reflect.Type) {
+func (p *property) doLoadFromSlice(t reflect.Type) {
 	k := t.Elem().Kind()
 	if k == reflect.Uint8 {
-		j.Type = "string"
+		p.Type = "string"
 	} else {
 		if jsType := getTypeFromMapping(k); jsType != "" {
-			j.Items = &JSONSchemaItems{Type: jsType}
+			p.Items = &item{Type: jsType}
 		}
 	}
 }
 
-func (j *JSONSchema) doLoadFromMap(t reflect.Type) {
+func (p *property) doLoadFromMap(t reflect.Type) {
 	k := t.Elem().Kind()
 
 	if jsType := getTypeFromMapping(k); jsType != "" {
-		j.Properties = make(map[string]*JSONSchema, 0)
-		j.Properties[".*"] = &JSONSchema{Type: jsType}
+		p.Properties = make(map[string]*property, 0)
+		p.Properties[".*"] = &property{Type: jsType}
 	} else {
-		j.AdditionalProperties = true
+		p.AdditionalProperties = true
 	}
 }
 
-func (j *JSONSchema) doLoadFromStruct(t reflect.Type) {
-	j.Type = "object"
-	j.Properties = make(map[string]*JSONSchema, 0)
-	j.AdditionalProperties = false
+func (p *property) doLoadFromStruct(t reflect.Type) {
+	p.Type = "object"
+	p.Properties = make(map[string]*property, 0)
+	p.AdditionalProperties = false
 
 	count := t.NumField()
 	for i := 0; i < count; i++ {
@@ -99,13 +103,12 @@ func (j *JSONSchema) doLoadFromStruct(t reflect.Type) {
 			name = field.Name
 		}
 
-		j.Properties[name] = &JSONSchema{}
-		j.Properties[name].doLoad(field.Type, opts)
+		p.Properties[name] = &property{}
+		p.Properties[name].doLoad(field.Type, opts)
 
 		if !opts.Contains("omitempty") {
-			j.Required = append(j.Required, name)
+			p.Required = append(p.Required, name)
 		}
-
 	}
 }
 
@@ -150,6 +153,7 @@ func (o tagOptions) Contains(optionName string) bool {
 	if len(o) == 0 {
 		return false
 	}
+
 	s := string(o)
 	for s != "" {
 		var next string

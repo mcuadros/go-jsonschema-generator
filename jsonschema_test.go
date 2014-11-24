@@ -8,9 +8,9 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-type JSONSchemaSuite struct{}
+type propertySuite struct{}
 
-var _ = Suite(&JSONSchemaSuite{})
+var _ = Suite(&propertySuite{})
 
 type ExampleJSONBasic struct {
 	Bool       bool    `json:",omitempty"`
@@ -31,31 +31,33 @@ type ExampleJSONBasic struct {
 	Interface  interface{}
 }
 
-func (self *JSONSchemaSuite) TestLoad(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestLoad(c *C) {
+	j := &Schema{}
 	j.Load(&ExampleJSONBasic{})
 
-	c.Assert(*j, DeepEquals, JSONSchema{
-		Type:     "object",
-		Schema:   "http://json-schema.org/schema#",
-		Required: []string{"Float64", "Interface"},
-		Properties: map[string]*JSONSchema{
-			"Bool":       &JSONSchema{Type: "bool"},
-			"Integer":    &JSONSchema{Type: "integer"},
-			"Integer8":   &JSONSchema{Type: "integer"},
-			"Integer16":  &JSONSchema{Type: "integer"},
-			"Integer32":  &JSONSchema{Type: "integer"},
-			"Integer64":  &JSONSchema{Type: "integer"},
-			"UInteger":   &JSONSchema{Type: "integer"},
-			"UInteger8":  &JSONSchema{Type: "integer"},
-			"UInteger16": &JSONSchema{Type: "integer"},
-			"UInteger32": &JSONSchema{Type: "integer"},
-			"UInteger64": &JSONSchema{Type: "integer"},
-			"String":     &JSONSchema{Type: "string"},
-			"Bytes":      &JSONSchema{Type: "string"},
-			"Float32":    &JSONSchema{Type: "number"},
-			"Float64":    &JSONSchema{Type: "number"},
-			"Interface":  &JSONSchema{},
+	c.Assert(*j, DeepEquals, Schema{
+		Schema: "http://json-schema.org/schema#",
+		property: property{
+			Type:     "object",
+			Required: []string{"Float64", "Interface"},
+			Properties: map[string]*property{
+				"Bool":       &property{Type: "bool"},
+				"Integer":    &property{Type: "integer"},
+				"Integer8":   &property{Type: "integer"},
+				"Integer16":  &property{Type: "integer"},
+				"Integer32":  &property{Type: "integer"},
+				"Integer64":  &property{Type: "integer"},
+				"UInteger":   &property{Type: "integer"},
+				"UInteger8":  &property{Type: "integer"},
+				"UInteger16": &property{Type: "integer"},
+				"UInteger32": &property{Type: "integer"},
+				"UInteger64": &property{Type: "integer"},
+				"String":     &property{Type: "string"},
+				"Bytes":      &property{Type: "string"},
+				"Float32":    &property{Type: "number"},
+				"Float64":    &property{Type: "number"},
+				"Interface":  &property{},
+			},
 		},
 	})
 }
@@ -64,16 +66,18 @@ type ExampleJSONBasicWithTag struct {
 	Bool bool `json:"test"`
 }
 
-func (self *JSONSchemaSuite) TestLoadWithTag(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestLoadWithTag(c *C) {
+	j := &Schema{}
 	j.Load(&ExampleJSONBasicWithTag{})
 
-	c.Assert(*j, DeepEquals, JSONSchema{
-		Type:     "object",
-		Schema:   "http://json-schema.org/schema#",
-		Required: []string{"test"},
-		Properties: map[string]*JSONSchema{
-			"test": &JSONSchema{Type: "bool"},
+	c.Assert(*j, DeepEquals, Schema{
+		Schema: "http://json-schema.org/schema#",
+		property: property{
+			Type:     "object",
+			Required: []string{"test"},
+			Properties: map[string]*property{
+				"test": &property{Type: "bool"},
+			},
 		},
 	})
 }
@@ -83,23 +87,26 @@ type ExampleJSONBasicSlices struct {
 	SliceOfInterface []interface{} `json:",foo"`
 }
 
-func (self *JSONSchemaSuite) TestLoadSliceAndContains(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestLoadSliceAndContains(c *C) {
+	j := &Schema{}
 	j.Load(&ExampleJSONBasicSlices{})
 
-	c.Assert(*j, DeepEquals, JSONSchema{
-		Type:   "object",
+	c.Assert(*j, DeepEquals, Schema{
 		Schema: "http://json-schema.org/schema#",
-		Properties: map[string]*JSONSchema{
-			"Slice": &JSONSchema{
-				Type:  "array",
-				Items: &JSONSchemaItems{Type: "string"},
+		property: property{
+			Type: "object",
+			Properties: map[string]*property{
+				"Slice": &property{
+					Type:  "array",
+					Items: &item{Type: "string"},
+				},
+				"SliceOfInterface": &property{
+					Type: "array",
+				},
 			},
-			"SliceOfInterface": &JSONSchema{
-				Type: "array",
-			},
+
+			Required: []string{"SliceOfInterface"},
 		},
-		Required: []string{"SliceOfInterface"},
 	})
 }
 
@@ -109,23 +116,25 @@ type ExampleJSONNestedStruct struct {
 	}
 }
 
-func (self *JSONSchemaSuite) TestLoadNested(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestLoadNested(c *C) {
+	j := &Schema{}
 	j.Load(&ExampleJSONNestedStruct{})
 
-	c.Assert(*j, DeepEquals, JSONSchema{
-		Type:   "object",
+	c.Assert(*j, DeepEquals, Schema{
 		Schema: "http://json-schema.org/schema#",
-		Properties: map[string]*JSONSchema{
-			"Struct": &JSONSchema{
-				Type: "object",
-				Properties: map[string]*JSONSchema{
-					"Foo": &JSONSchema{Type: "string"},
+		property: property{
+			Type: "object",
+			Properties: map[string]*property{
+				"Struct": &property{
+					Type: "object",
+					Properties: map[string]*property{
+						"Foo": &property{Type: "string"},
+					},
+					Required: []string{"Foo"},
 				},
-				Required: []string{"Foo"},
 			},
+			Required: []string{"Struct"},
 		},
-		Required: []string{"Struct"},
 	})
 }
 
@@ -134,43 +143,47 @@ type ExampleJSONBasicMaps struct {
 	MapOfInterface map[string]interface{}
 }
 
-func (self *JSONSchemaSuite) TestLoadMap(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestLoadMap(c *C) {
+	j := &Schema{}
 	j.Load(&ExampleJSONBasicMaps{})
 
-	c.Assert(*j, DeepEquals, JSONSchema{
-		Type:   "object",
+	c.Assert(*j, DeepEquals, Schema{
 		Schema: "http://json-schema.org/schema#",
-		Properties: map[string]*JSONSchema{
-			"Maps": &JSONSchema{
-				Type: "object",
-				Properties: map[string]*JSONSchema{
-					".*": &JSONSchema{Type: "string"},
+		property: property{
+			Type: "object",
+			Properties: map[string]*property{
+				"Maps": &property{
+					Type: "object",
+					Properties: map[string]*property{
+						".*": &property{Type: "string"},
+					},
+					AdditionalProperties: false,
 				},
-				AdditionalProperties: false,
+				"MapOfInterface": &property{
+					Type:                 "object",
+					AdditionalProperties: true,
+				},
 			},
-			"MapOfInterface": &JSONSchema{
-				Type:                 "object",
-				AdditionalProperties: true,
-			},
+			Required: []string{"MapOfInterface"},
 		},
-		Required: []string{"MapOfInterface"},
 	})
 }
 
-func (self *JSONSchemaSuite) TestLoadNonStruct(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestLoadNonStruct(c *C) {
+	j := &Schema{}
 	j.Load([]string{})
 
-	c.Assert(*j, DeepEquals, JSONSchema{
-		Type:   "array",
+	c.Assert(*j, DeepEquals, Schema{
 		Schema: "http://json-schema.org/schema#",
-		Items:  &JSONSchemaItems{Type: "string"},
+		property: property{
+			Type:  "array",
+			Items: &item{Type: "string"},
+		},
 	})
 }
 
-func (self *JSONSchemaSuite) TestString(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestString(c *C) {
+	j := &Schema{}
 	j.Load(true)
 
 	expected := "{\n" +
@@ -181,8 +194,8 @@ func (self *JSONSchemaSuite) TestString(c *C) {
 	c.Assert(j.String(), Equals, expected)
 }
 
-func (self *JSONSchemaSuite) TestMarshal(c *C) {
-	j := &JSONSchema{}
+func (self *propertySuite) TestMarshal(c *C) {
+	j := &Schema{}
 	j.Load(10)
 
 	expected := "{\n" +

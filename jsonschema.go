@@ -6,11 +6,15 @@ import (
 	"strings"
 )
 
+const DEFAULT_SCHEMA = "http://json-schema.org/schema#"
+
 type JSONSchema struct {
-	Type       string                 `json:"type"`
-	Items      *JSONSchemaItems       `json:"items,omitempty"`
-	Properties map[string]*JSONSchema `json:"properties,omitempty"`
-	Required   []string               `json:"required,omitempty"`
+	Schema               string                 `json:"$schema,omitempty"`
+	Type                 string                 `json:"type,omitempty"`
+	Items                *JSONSchemaItems       `json:"items,omitempty"`
+	Properties           map[string]*JSONSchema `json:"properties,omitempty"`
+	Required             []string               `json:"required,omitempty"`
+	AdditionalProperties bool                   `json:"additionalProperties,omitempty"`
 }
 
 type JSONSchemaItems struct {
@@ -27,14 +31,25 @@ func (j *JSONSchema) String() string {
 }
 
 func (j *JSONSchema) Load(variable interface{}) {
+	j.setDefaultSchema()
+
 	value := reflect.ValueOf(variable)
 	j.doLoad(value.Type(), tagOptions(""))
+}
+
+func (j *JSONSchema) setDefaultSchema() {
+	if j.Schema == "" {
+		j.Schema = DEFAULT_SCHEMA
+	}
 }
 
 func (j *JSONSchema) doLoad(t reflect.Type, opts tagOptions) {
 	kind := t.Kind()
 
-	j.Type = getTypeFromMapping(kind)
+	if jsType := getTypeFromMapping(kind); jsType != "" {
+		j.Type = jsType
+	}
+
 	switch kind {
 	case reflect.Slice:
 		j.doLoadFromSlice(t)
@@ -52,19 +67,27 @@ func (j *JSONSchema) doLoadFromSlice(t reflect.Type) {
 	if k == reflect.Uint8 {
 		j.Type = "string"
 	} else {
-		j.Items = &JSONSchemaItems{Type: getTypeFromMapping(k)}
+		if jsType := getTypeFromMapping(k); jsType != "" {
+			j.Items = &JSONSchemaItems{Type: jsType}
+		}
 	}
 }
 
 func (j *JSONSchema) doLoadFromMap(t reflect.Type) {
 	k := t.Elem().Kind()
-	j.Properties = make(map[string]*JSONSchema, 0)
-	j.Properties[".*"] = &JSONSchema{Type: getTypeFromMapping(k)}
+
+	if jsType := getTypeFromMapping(k); jsType != "" {
+		j.Properties = make(map[string]*JSONSchema, 0)
+		j.Properties[".*"] = &JSONSchema{Type: jsType}
+	} else {
+		j.AdditionalProperties = true
+	}
 }
 
 func (j *JSONSchema) doLoadFromStruct(t reflect.Type) {
 	j.Type = "object"
 	j.Properties = make(map[string]*JSONSchema, 0)
+	j.AdditionalProperties = false
 
 	count := t.NumField()
 	for i := 0; i < count; i++ {
@@ -82,6 +105,7 @@ func (j *JSONSchema) doLoadFromStruct(t reflect.Type) {
 		if !opts.Contains("omitempty") {
 			j.Required = append(j.Required, name)
 		}
+
 	}
 }
 

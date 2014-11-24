@@ -36,6 +36,7 @@ func (self *JSONSchemaSuite) TestLoad(c *C) {
 
 	c.Assert(*j, DeepEquals, JSONSchema{
 		Type:     "object",
+		Schema:   "http://json-schema.org/schema#",
 		Required: []string{"Float64"},
 		Properties: map[string]*JSONSchema{
 			"Bool":       &JSONSchema{Type: "bool"},
@@ -67,6 +68,7 @@ func (self *JSONSchemaSuite) TestLoadWithTag(c *C) {
 
 	c.Assert(*j, DeepEquals, JSONSchema{
 		Type:     "object",
+		Schema:   "http://json-schema.org/schema#",
 		Required: []string{"test"},
 		Properties: map[string]*JSONSchema{
 			"test": &JSONSchema{Type: "bool"},
@@ -84,7 +86,8 @@ func (self *JSONSchemaSuite) TestLoadSlice(c *C) {
 	j.Load(&ExampleJSONBasicSlices{})
 
 	c.Assert(*j, DeepEquals, JSONSchema{
-		Type: "object",
+		Type:   "object",
+		Schema: "http://json-schema.org/schema#",
 		Properties: map[string]*JSONSchema{
 			"Strings": &JSONSchema{
 				Type:  "array",
@@ -95,7 +98,8 @@ func (self *JSONSchemaSuite) TestLoadSlice(c *C) {
 }
 
 type ExampleJSONBasicMaps struct {
-	Maps map[string]string `json:",omitempty"`
+	Maps           map[string]string `json:",omitempty"`
+	MapOfInterface map[string]interface{}
 }
 
 func (self *JSONSchemaSuite) TestLoadMap(c *C) {
@@ -103,14 +107,21 @@ func (self *JSONSchemaSuite) TestLoadMap(c *C) {
 	j.Load(&ExampleJSONBasicMaps{})
 
 	c.Assert(*j, DeepEquals, JSONSchema{
-		Type: "object",
+		Type:   "object",
+		Schema: "http://json-schema.org/schema#",
 		Properties: map[string]*JSONSchema{
 			"Maps": &JSONSchema{
 				Type: "object",
 				Properties: map[string]*JSONSchema{
 					".*": &JSONSchema{Type: "string"},
 				},
+				AdditionalProperties: false,
+			},
+			"MapOfInterface": &JSONSchema{
+				Type:                 "object",
+				AdditionalProperties: true,
 			},
 		},
+		Required: []string{"MapOfInterface"},
 	})
 }

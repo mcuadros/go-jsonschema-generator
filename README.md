@@ -22,43 +22,50 @@ A basic example:
 package main
 
 import (
-    "fmt"
-    "github.com/mcuadros/go-jsonschema-generator"
+  "fmt"
+  "github.com/mcuadros/go-jsonschema-generator"
 )
 
 type ExampleBasic struct {
-    Foo bool   `json:"foo"`
-    Bar string `json:",omitempty"`
-    Qux int8
+  Foo bool   `json:"foo"`
+  Bar string `json:",omitempty"`
+  Qux int8
+  Baz []string
 }
 
 func main() {
-    j := &jsonschema.JSONSchema{}
-    j.Load(&ExampleBasic{})
-
-    fmt.Println(j)
+  s := &jsonschema.Schema{}
+  s.Load(&ExampleBasic{})
+  fmt.Println(s)
 }
-
 ```
 
 ```json
 {
-  "type": "object",
-  "properties": {
-    "Bar": {
-      "type": "string"
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "Bar": {
+            "type": "string"
+        },
+        "Baz": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "Qux": {
+            "type": "integer"
+        },
+        "foo": {
+            "type": "bool"
+        }
     },
-    "Qux": {
-      "type": "integer"
-    },
-    "foo": {
-      "type": "bool"
-    }
-  },
-  "required": [
-    "foo",
-    "Qux"
-  ]
+    "required": [
+        "foo",
+        "Qux",
+        "Baz"
+    ]
 }
 ```
 

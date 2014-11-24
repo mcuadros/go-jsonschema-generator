@@ -18,7 +18,7 @@ type JSONSchemaItems struct {
 }
 
 func (j *JSONSchema) Marshal() ([]byte, error) {
-	return json.MarshalIndent(j, "", "  ")
+	return json.MarshalIndent(j, "", "    ")
 }
 
 func (j *JSONSchema) String() string {
@@ -27,26 +27,28 @@ func (j *JSONSchema) String() string {
 }
 
 func (j *JSONSchema) Load(variable interface{}) {
-	value := reflect.ValueOf(variable).Elem()
-	j.doLoad(value, tagOptions(""))
+	value := reflect.ValueOf(variable)
+	j.doLoad(value.Type(), tagOptions(""))
 }
 
-func (j *JSONSchema) doLoad(value reflect.Value, opts tagOptions) {
-	kind := value.Kind()
+func (j *JSONSchema) doLoad(t reflect.Type, opts tagOptions) {
+	kind := t.Kind()
 
 	j.Type = getTypeFromMapping(kind)
 	switch kind {
 	case reflect.Slice:
-		j.doLoadFromSlice(value)
+		j.doLoadFromSlice(t)
 	case reflect.Map:
-		j.doLoadFromMap(value)
+		j.doLoadFromMap(t)
 	case reflect.Struct:
-		j.doLoadFromStruct(value)
+		j.doLoadFromStruct(t)
+	case reflect.Ptr:
+		j.doLoad(t.Elem(), opts)
 	}
 }
 
-func (j *JSONSchema) doLoadFromSlice(valueObject reflect.Value) {
-	k := valueObject.Type().Elem().Kind()
+func (j *JSONSchema) doLoadFromSlice(t reflect.Type) {
+	k := t.Elem().Kind()
 	if k == reflect.Uint8 {
 		j.Type = "string"
 	} else {
@@ -54,21 +56,19 @@ func (j *JSONSchema) doLoadFromSlice(valueObject reflect.Value) {
 	}
 }
 
-func (j *JSONSchema) doLoadFromMap(valueObject reflect.Value) {
-	k := valueObject.Type().Elem().Kind()
+func (j *JSONSchema) doLoadFromMap(t reflect.Type) {
+	k := t.Elem().Kind()
 	j.Properties = make(map[string]*JSONSchema, 0)
 	j.Properties[".*"] = &JSONSchema{Type: getTypeFromMapping(k)}
 }
 
-func (j *JSONSchema) doLoadFromStruct(valueObject reflect.Value) {
+func (j *JSONSchema) doLoadFromStruct(t reflect.Type) {
 	j.Type = "object"
 	j.Properties = make(map[string]*JSONSchema, 0)
-	typeObject := valueObject.Type()
 
-	count := valueObject.NumField()
+	count := t.NumField()
 	for i := 0; i < count; i++ {
-		field := typeObject.Field(i)
-		value := valueObject.Field(i)
+		field := t.Field(i)
 
 		tag := field.Tag.Get("json")
 		name, opts := parseTag(tag)
@@ -77,7 +77,7 @@ func (j *JSONSchema) doLoadFromStruct(valueObject reflect.Value) {
 		}
 
 		j.Properties[name] = &JSONSchema{}
-		j.Properties[name].doLoad(value, opts)
+		j.Properties[name].doLoad(field.Type, opts)
 
 		if !opts.Contains("omitempty") {
 			j.Required = append(j.Required, name)

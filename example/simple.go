@@ -13,7 +13,7 @@ type ExampleBasic struct {
 }
 
 func main() {
-	s := &jsonschema.Schema{}
-	s.Load(&ExampleBasic{})
+	s := &jsonschema.Document{}
+	s.Read(&ExampleBasic{})
 	fmt.Println(s)
 }

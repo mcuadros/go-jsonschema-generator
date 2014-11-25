@@ -1,3 +1,7 @@
+/*
+Basic json-schema generator based on Go types, for easy interchange of Go
+structures between diferent languages.
+*/
 package jsonschema
 
 import (
@@ -8,35 +12,34 @@ import (
 
 const DEFAULT_SCHEMA = "http://json-schema.org/schema#"
 
-type Schema struct {
+type Document struct {
 	Schema string `json:"$schema,omitempty"`
 	property
 }
 
-type item struct {
-	Type string `json:"type,omitempty"`
-}
-
-func (s *Schema) Marshal() ([]byte, error) {
-	return json.MarshalIndent(s, "", "    ")
-}
-
-func (s *Schema) String() string {
-	json, _ := s.Marshal()
-	return string(json)
-}
-
-func (s *Schema) Load(variable interface{}) {
-	s.setDefaultSchema()
+// Reads the variable structure into the JSON-Schema Document
+func (d *Document) Read(variable interface{}) {
+	d.setDefaultSchema()
 
 	value := reflect.ValueOf(variable)
-	s.doLoad(value.Type(), tagOptions(""))
+	d.read(value.Type(), tagOptions(""))
 }
 
-func (s *Schema) setDefaultSchema() {
-	if s.Schema == "" {
-		s.Schema = DEFAULT_SCHEMA
+func (d *Document) setDefaultSchema() {
+	if d.Schema == "" {
+		d.Schema = DEFAULT_SCHEMA
 	}
+}
+
+// Marshal returns the JSON encoding of the Document
+func (d *Document) Marshal() ([]byte, error) {
+	return json.MarshalIndent(d, "", "    ")
+}
+
+// String return the JSON encoding of the Document as a string
+func (d *Document) String() string {
+	json, _ := d.Marshal()
+	return string(json)
 }
 
 type property struct {
@@ -47,7 +50,11 @@ type property struct {
 	AdditionalProperties bool                 `json:"additionalProperties,omitempty"`
 }
 
-func (p *property) doLoad(t reflect.Type, opts tagOptions) {
+type item struct {
+	Type string `json:"type,omitempty"`
+}
+
+func (p *property) read(t reflect.Type, opts tagOptions) {
 	kind := t.Kind()
 
 	if jsType := getTypeFromMapping(kind); jsType != "" {
@@ -56,17 +63,17 @@ func (p *property) doLoad(t reflect.Type, opts tagOptions) {
 
 	switch kind {
 	case reflect.Slice:
-		p.doLoadFromSlice(t)
+		p.readFromSlice(t)
 	case reflect.Map:
-		p.doLoadFromMap(t)
+		p.readFromMap(t)
 	case reflect.Struct:
-		p.doLoadFromStruct(t)
+		p.readFromStruct(t)
 	case reflect.Ptr:
-		p.doLoad(t.Elem(), opts)
+		p.read(t.Elem(), opts)
 	}
 }
 
-func (p *property) doLoadFromSlice(t reflect.Type) {
+func (p *property) readFromSlice(t reflect.Type) {
 	k := t.Elem().Kind()
 	if k == reflect.Uint8 {
 		p.Type = "string"
@@ -77,7 +84,7 @@ func (p *property) doLoadFromSlice(t reflect.Type) {
 	}
 }
 
-func (p *property) doLoadFromMap(t reflect.Type) {
+func (p *property) readFromMap(t reflect.Type) {
 	k := t.Elem().Kind()
 
 	if jsType := getTypeFromMapping(k); jsType != "" {
@@ -88,7 +95,7 @@ func (p *property) doLoadFromMap(t reflect.Type) {
 	}
 }
 
-func (p *property) doLoadFromStruct(t reflect.Type) {
+func (p *property) readFromStruct(t reflect.Type) {
 	p.Type = "object"
 	p.Properties = make(map[string]*property, 0)
 	p.AdditionalProperties = false
@@ -104,7 +111,7 @@ func (p *property) doLoadFromStruct(t reflect.Type) {
 		}
 
 		p.Properties[name] = &property{}
-		p.Properties[name].doLoad(field.Type, opts)
+		p.Properties[name].read(field.Type, opts)
 
 		if !opts.Contains("omitempty") {
 			p.Required = append(p.Required, name)

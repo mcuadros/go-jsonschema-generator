@@ -6,5 +6,5 @@ go:
   - tip
 
 script:
-  - go get launchpad.net/gocheck
+  - go get gopkg.in/check.v1
   - go test

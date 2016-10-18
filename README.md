@@ -1,7 +1,7 @@
 go-jsonschema-generator [![Build Status](https://travis-ci.org/mcuadros/go-jsonschema-generator.png?branch=master)](https://travis-ci.org/mcuadros/go-jsonschema-generator) [![GoDoc](http://godoc.org/github.com/mcuadros/go-jsonschema-generator?status.png)](http://godoc.org/github.com/mcuadros/go-jsonschema-generator)
 ==============================
 
-Basic [json-schema](http://json-schema.org/) generator based on Go types, for easy interchange of Go strcutures across languages.
+Basic [json-schema](http://json-schema.org/) generator based on Go types, for easy interchange of Go structures across languages.
 
 
 Installation

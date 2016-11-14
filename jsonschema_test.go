@@ -13,6 +13,7 @@ type propertySuite struct{}
 var _ = Suite(&propertySuite{})
 
 type ExampleJSONBasic struct {
+        Omitted    string  `json:"-,omitempty"`
 	Bool       bool    `json:",omitempty"`
 	Integer    int     `json:",omitempty"`
 	Integer8   int8    `json:",omitempty"`

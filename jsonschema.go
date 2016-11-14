@@ -109,6 +109,9 @@ func (p *property) readFromStruct(t reflect.Type) {
 		if name == "" {
 			name = field.Name
 		}
+		if name == "-" {
+			continue
+		}
 
 		p.Properties[name] = &property{}
 		p.Properties[name].read(field.Type, opts)

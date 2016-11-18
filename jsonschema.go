@@ -123,7 +123,7 @@ func (p *property) readFromStruct(t reflect.Type) {
 }
 
 var mapping = map[reflect.Kind]string{
-	reflect.Bool:    "bool",
+	reflect.Bool:    "boolean",
 	reflect.Int:     "integer",
 	reflect.Int8:    "integer",
 	reflect.Int16:   "integer",

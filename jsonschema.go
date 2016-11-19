@@ -44,6 +44,7 @@ func (d *Document) String() string {
 
 type property struct {
 	Type                 string               `json:"type,omitempty"`
+	Format               string               `json:"format,omitempty"`
 	Items                *item                `json:"items,omitempty"`
 	Properties           map[string]*property `json:"properties,omitempty"`
 	Required             []string             `json:"required,omitempty"`
@@ -55,10 +56,12 @@ type item struct {
 }
 
 func (p *property) read(t reflect.Type, opts tagOptions) {
-	kind := t.Kind()
-
-	if jsType := getTypeFromMapping(kind); jsType != "" {
+	jsType, format, kind := getTypeFromMapping(t)
+	if jsType != "" {
 		p.Type = jsType
+	}
+	if format != "" {
+		p.Format = format
 	}
 
 	switch kind {
@@ -74,22 +77,20 @@ func (p *property) read(t reflect.Type, opts tagOptions) {
 }
 
 func (p *property) readFromSlice(t reflect.Type) {
-	k := t.Elem().Kind()
-	if k == reflect.Uint8 {
+	jsType, _, kind := getTypeFromMapping(t.Elem())
+	if kind == reflect.Uint8 {
 		p.Type = "string"
-	} else {
-		if jsType := getTypeFromMapping(k); jsType != "" {
-			p.Items = &item{Type: jsType}
-		}
+	} else if jsType != "" {
+		p.Items = &item{Type: jsType}
 	}
 }
 
 func (p *property) readFromMap(t reflect.Type) {
-	k := t.Elem().Kind()
+	jsType, format, _ := getTypeFromMapping(t.Elem())
 
-	if jsType := getTypeFromMapping(k); jsType != "" {
+	if jsType != "" {
 		p.Properties = make(map[string]*property, 0)
-		p.Properties[".*"] = &property{Type: jsType}
+		p.Properties[".*"] = &property{Type: jsType, Format: format}
 	} else {
 		p.AdditionalProperties = true
 	}
@@ -122,7 +123,11 @@ func (p *property) readFromStruct(t reflect.Type) {
 	}
 }
 
-var mapping = map[reflect.Kind]string{
+var formatMapping = map[string][]string{
+	"time.Time": []string{"string", "date-time"},
+}
+
+var kindMapping = map[reflect.Kind]string{
 	reflect.Bool:    "boolean",
 	reflect.Int:     "integer",
 	reflect.Int8:    "integer",
@@ -142,12 +147,16 @@ var mapping = map[reflect.Kind]string{
 	reflect.Map:     "object",
 }
 
-func getTypeFromMapping(k reflect.Kind) string {
-	if t, ok := mapping[k]; ok {
-		return t
+func getTypeFromMapping(t reflect.Type) (string, string, reflect.Kind) {
+	if v, ok := formatMapping[t.String()]; ok {
+		return v[0], v[1], reflect.String
 	}
 
-	return ""
+	if v, ok := kindMapping[t.Kind()]; ok {
+		return v, "", t.Kind()
+	}
+
+	return "", "", t.Kind()
 }
 
 type tagOptions string

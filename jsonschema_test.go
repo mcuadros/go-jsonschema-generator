@@ -2,6 +2,7 @@ package jsonschema
 
 import (
 	"testing"
+	"time"
 
 	. "gopkg.in/check.v1"
 )
@@ -30,6 +31,7 @@ type ExampleJSONBasic struct {
 	Float32    float32 `json:",omitempty"`
 	Float64    float64
 	Interface  interface{}
+	Timestamp  time.Time `json:",omitempty"`
 }
 
 func (self *propertySuite) TestLoad(c *C) {
@@ -58,6 +60,7 @@ func (self *propertySuite) TestLoad(c *C) {
 				"Float32":    &property{Type: "number"},
 				"Float64":    &property{Type: "number"},
 				"Interface":  &property{},
+				"Timestamp":  &property{Type: "string", Format: "date-time"},
 			},
 		},
 	})

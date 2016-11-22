@@ -2,6 +2,7 @@ package jsonschema
 
 import (
 	"testing"
+	"time"
 
 	. "gopkg.in/check.v1"
 )
@@ -13,7 +14,7 @@ type propertySuite struct{}
 var _ = Suite(&propertySuite{})
 
 type ExampleJSONBasic struct {
-        Omitted    string  `json:"-,omitempty"`
+	Omitted    string  `json:"-,omitempty"`
 	Bool       bool    `json:",omitempty"`
 	Integer    int     `json:",omitempty"`
 	Integer8   int8    `json:",omitempty"`
@@ -30,6 +31,7 @@ type ExampleJSONBasic struct {
 	Float32    float32 `json:",omitempty"`
 	Float64    float64
 	Interface  interface{}
+	Timestamp  time.Time `json:",omitempty"`
 }
 
 func (self *propertySuite) TestLoad(c *C) {
@@ -42,7 +44,7 @@ func (self *propertySuite) TestLoad(c *C) {
 			Type:     "object",
 			Required: []string{"Float64", "Interface"},
 			Properties: map[string]*property{
-				"Bool":       &property{Type: "bool"},
+				"Bool":       &property{Type: "boolean"},
 				"Integer":    &property{Type: "integer"},
 				"Integer8":   &property{Type: "integer"},
 				"Integer16":  &property{Type: "integer"},
@@ -58,6 +60,7 @@ func (self *propertySuite) TestLoad(c *C) {
 				"Float32":    &property{Type: "number"},
 				"Float64":    &property{Type: "number"},
 				"Interface":  &property{},
+				"Timestamp":  &property{Type: "string", Format: "date-time"},
 			},
 		},
 	})
@@ -77,7 +80,7 @@ func (self *propertySuite) TestLoadWithTag(c *C) {
 			Type:     "object",
 			Required: []string{"test"},
 			Properties: map[string]*property{
-				"test": &property{Type: "bool"},
+				"test": &property{Type: "boolean"},
 			},
 		},
 	})
@@ -189,7 +192,7 @@ func (self *propertySuite) TestString(c *C) {
 
 	expected := "{\n" +
 		"    \"$schema\": \"http://json-schema.org/schema#\",\n" +
-		"    \"type\": \"bool\"\n" +
+		"    \"type\": \"boolean\"\n" +
 		"}"
 
 	c.Assert(j.String(), Equals, expected)

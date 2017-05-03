@@ -114,6 +114,18 @@ func (p *property) readFromStruct(t reflect.Type) {
 			continue
 		}
 
+		if field.Anonymous {
+			embeddedProperty := &property{}
+			embeddedProperty.read(field.Type, opts)
+
+			for name, property := range embeddedProperty.Properties {
+				p.Properties[name] = property
+			}
+			p.Required = append(p.Required, embeddedProperty.Required...)
+
+			continue
+		}
+
 		p.Properties[name] = &property{}
 		p.Properties[name].read(field.Type, opts)
 

@@ -142,6 +142,30 @@ func (self *propertySuite) TestLoadNested(c *C) {
 	})
 }
 
+type EmbeddedStruct struct {
+	Foo string
+}
+
+type ExampleJSONEmbeddedStruct struct {
+	EmbeddedStruct
+}
+
+func (self *propertySuite) TestLoadEmbedded(c *C) {
+	j := &Document{}
+	j.Read(&ExampleJSONEmbeddedStruct{})
+
+	c.Assert(*j, DeepEquals, Document{
+		Schema: "http://json-schema.org/schema#",
+		property: property{
+			Type: "object",
+			Properties: map[string]*property{
+				"Foo": &property{Type: "string"},
+			},
+			Required: []string{"Foo"},
+		},
+	})
+}
+
 type ExampleJSONBasicMaps struct {
 	Maps           map[string]string `json:",omitempty"`
 	MapOfInterface map[string]interface{}

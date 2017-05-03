@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/mcuadros/go-jsonschema-generator"
+	"github.com/Barberrrry/go-jsonschema-generator"
 )
 
 type EmbeddedType struct {
 	Zoo string
+}
+
+type Item struct {
+	Value string
 }
 
 type ExampleBasic struct {
@@ -15,6 +19,7 @@ type ExampleBasic struct {
 	Qux int8
 	Baz []string
 	EmbeddedType
+	List []Item
 }
 
 func main() {

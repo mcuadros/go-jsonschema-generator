@@ -86,9 +86,14 @@ func (self *propertySuite) TestLoadWithTag(c *C) {
 	})
 }
 
+type SliceStruct struct {
+	Value string
+}
+
 type ExampleJSONBasicSlices struct {
 	Slice            []string      `json:",foo,omitempty"`
 	SliceOfInterface []interface{} `json:",foo"`
+	SliceOfStruct    []SliceStruct
 }
 
 func (self *propertySuite) TestLoadSliceAndContains(c *C) {
@@ -102,14 +107,26 @@ func (self *propertySuite) TestLoadSliceAndContains(c *C) {
 			Properties: map[string]*property{
 				"Slice": &property{
 					Type:  "array",
-					Items: &item{Type: "string"},
+					Items: &property{Type: "string"},
 				},
 				"SliceOfInterface": &property{
 					Type: "array",
 				},
+				"SliceOfStruct": &property{
+					Type: "array",
+					Items: &property{
+						Type:     "object",
+						Required: []string{"Value"},
+						Properties: map[string]*property{
+							"Value": &property{
+								Type: "string",
+							},
+						},
+					},
+				},
 			},
 
-			Required: []string{"SliceOfInterface"},
+			Required: []string{"SliceOfInterface", "SliceOfStruct"},
 		},
 	})
 }
@@ -205,7 +222,7 @@ func (self *propertySuite) TestLoadNonStruct(c *C) {
 		Schema: "http://json-schema.org/schema#",
 		property: property{
 			Type:  "array",
-			Items: &item{Type: "string"},
+			Items: &property{Type: "string"},
 		},
 	})
 }

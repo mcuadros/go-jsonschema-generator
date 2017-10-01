@@ -45,14 +45,10 @@ func (d *Document) String() string {
 type property struct {
 	Type                 string               `json:"type,omitempty"`
 	Format               string               `json:"format,omitempty"`
-	Items                *item                `json:"items,omitempty"`
+	Items                *property            `json:"items,omitempty"`
 	Properties           map[string]*property `json:"properties,omitempty"`
 	Required             []string             `json:"required,omitempty"`
 	AdditionalProperties bool                 `json:"additionalProperties,omitempty"`
-}
-
-type item struct {
-	Type string `json:"type,omitempty"`
 }
 
 func (p *property) read(t reflect.Type, opts tagOptions) {
@@ -81,7 +77,8 @@ func (p *property) readFromSlice(t reflect.Type) {
 	if kind == reflect.Uint8 {
 		p.Type = "string"
 	} else if jsType != "" {
-		p.Items = &item{Type: jsType}
+		p.Items = &property{}
+		p.Items.read(t.Elem(), tagOptions(""))
 	}
 }
 
@@ -111,6 +108,18 @@ func (p *property) readFromStruct(t reflect.Type) {
 			name = field.Name
 		}
 		if name == "-" {
+			continue
+		}
+
+		if field.Anonymous {
+			embeddedProperty := &property{}
+			embeddedProperty.read(field.Type, opts)
+
+			for name, property := range embeddedProperty.Properties {
+				p.Properties[name] = property
+			}
+			p.Required = append(p.Required, embeddedProperty.Required...)
+
 			continue
 		}
 

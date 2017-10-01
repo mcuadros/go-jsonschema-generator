@@ -26,11 +26,21 @@ import (
   "github.com/mcuadros/go-jsonschema-generator"
 )
 
+type EmbeddedType struct {
+  Zoo string
+}
+
+type Item struct {
+  Value string
+}
+
 type ExampleBasic struct {
   Foo bool   `json:"foo"`
   Bar string `json:",omitempty"`
   Qux int8
   Baz []string
+  EmbeddedType
+  List []Item
 }
 
 func main() {
@@ -54,17 +64,36 @@ func main() {
                 "type": "string"
             }
         },
+        "List": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "Value": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "Value"
+                ]
+            }
+        },
         "Qux": {
             "type": "integer"
         },
+        "Zoo": {
+            "type": "string"
+        },
         "foo": {
-            "type": "bool"
+            "type": "boolean"
         }
     },
     "required": [
         "foo",
         "Qux",
-        "Baz"
+        "Baz",
+        "Zoo",
+        "List"
     ]
 }
 ```

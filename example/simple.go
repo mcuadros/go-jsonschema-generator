@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/Barberrrry/go-jsonschema-generator"
+
+	"github.com/mcuadros/go-jsonschema-generator"
 )
 
 type EmbeddedType struct {

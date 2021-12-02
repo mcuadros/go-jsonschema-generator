@@ -22,6 +22,7 @@ func (d *Document) Read(variable interface{}) {
 	d.setDefaultSchema()
 
 	value := reflect.ValueOf(variable)
+
 	d.read(value.Type(), tagOptions(""))
 }
 
@@ -62,7 +63,7 @@ func (p *property) read(t reflect.Type, opts tagOptions) {
 
 	switch kind {
 	case reflect.Slice:
-		p.readFromSlice(t)
+		p.readFromSlice(t, opts)
 	case reflect.Map:
 		p.readFromMap(t)
 	case reflect.Struct:
@@ -72,13 +73,17 @@ func (p *property) read(t reflect.Type, opts tagOptions) {
 	}
 }
 
-func (p *property) readFromSlice(t reflect.Type) {
+func (p *property) readFromSlice(t reflect.Type, opts tagOptions) {
 	jsType, _, kind := getTypeFromMapping(t.Elem())
+	// fmt.Println("readFromSlice", jsType, kind)
 	if kind == reflect.Uint8 {
 		p.Type = "string"
 	} else if jsType != "" {
 		p.Items = &property{}
 		p.Items.read(t.Elem(), tagOptions(""))
+	} else if kind == reflect.Ptr {
+		p.Items = &property{}
+		p.Items.read(t.Elem(), opts)
 	}
 }
 

@@ -94,6 +94,7 @@ type ExampleJSONBasicSlices struct {
 	Slice            []string      `json:",foo,omitempty"`
 	SliceOfInterface []interface{} `json:",foo"`
 	SliceOfStruct    []SliceStruct
+	SliceOfStructPtr []*SliceStruct
 }
 
 func (self *propertySuite) TestLoadSliceAndContains(c *C) {
@@ -124,9 +125,21 @@ func (self *propertySuite) TestLoadSliceAndContains(c *C) {
 						},
 					},
 				},
+				"SliceOfStructPtr": &property{
+					Type: "array",
+					Items: &property{
+						Type:     "object",
+						Required: []string{"Value"},
+						Properties: map[string]*property{
+							"Value": &property{
+								Type: "string",
+							},
+						},
+					},
+				},
 			},
 
-			Required: []string{"SliceOfInterface", "SliceOfStruct"},
+			Required: []string{"SliceOfInterface", "SliceOfStruct", "SliceOfStructPtr"},
 		},
 	})
 }

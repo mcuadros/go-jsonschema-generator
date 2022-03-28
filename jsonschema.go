@@ -6,6 +6,7 @@ package jsonschema
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -22,6 +23,7 @@ func (d *Document) Read(variable interface{}) {
 	d.setDefaultSchema()
 
 	value := reflect.ValueOf(variable)
+
 	d.read(value.Type(), tagOptions(""))
 }
 
@@ -40,6 +42,18 @@ func (d *Document) Marshal() ([]byte, error) {
 func (d *Document) String() string {
 	json, _ := d.Marshal()
 	return string(json)
+}
+
+func PkgName(t reflect.Type) string {
+	var pkgName string
+	if t.Kind() == reflect.Struct {
+		pkgName = fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
+	} else if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
+		pkgName = fmt.Sprintf("%s.%s", t.Elem().PkgPath(), t.Elem().Name())
+	} else if t.Kind() == reflect.Slice {
+		pkgName = PkgName(t.Elem())
+	}
+	return pkgName
 }
 
 type property struct {
@@ -62,7 +76,7 @@ func (p *property) read(t reflect.Type, opts tagOptions) {
 
 	switch kind {
 	case reflect.Slice:
-		p.readFromSlice(t)
+		p.readFromSlice(t, opts)
 	case reflect.Map:
 		p.readFromMap(t)
 	case reflect.Struct:
@@ -72,13 +86,17 @@ func (p *property) read(t reflect.Type, opts tagOptions) {
 	}
 }
 
-func (p *property) readFromSlice(t reflect.Type) {
+func (p *property) readFromSlice(t reflect.Type, opts tagOptions) {
 	jsType, _, kind := getTypeFromMapping(t.Elem())
+
 	if kind == reflect.Uint8 {
 		p.Type = "string"
 	} else if jsType != "" {
 		p.Items = &property{}
 		p.Items.read(t.Elem(), tagOptions(""))
+	} else if kind == reflect.Ptr {
+		p.Items = &property{}
+		p.Items.read(t.Elem(), opts)
 	}
 }
 
@@ -97,6 +115,8 @@ func (p *property) readFromStruct(t reflect.Type) {
 	p.Type = "object"
 	p.Properties = make(map[string]*property, 0)
 	p.AdditionalProperties = false
+
+	pkgName := PkgName(t)
 
 	count := t.NumField()
 	for i := 0; i < count; i++ {
@@ -124,11 +144,17 @@ func (p *property) readFromStruct(t reflect.Type) {
 		}
 
 		p.Properties[name] = &property{}
-		p.Properties[name].read(field.Type, opts)
-
 		if !opts.Contains("omitempty") {
 			p.Required = append(p.Required, name)
 		}
+
+		// 不支持树状结构的递归
+		if PkgName(field.Type) == pkgName {
+			p.Properties[name].Type = "object"
+			continue
+		}
+		p.Properties[name].read(field.Type, opts)
+
 	}
 }
 

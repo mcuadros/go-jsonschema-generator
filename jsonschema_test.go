@@ -94,6 +94,7 @@ type ExampleJSONBasicSlices struct {
 	Slice            []string      `json:",foo,omitempty"`
 	SliceOfInterface []interface{} `json:",foo"`
 	SliceOfStruct    []SliceStruct
+	SliceOfStructPtr []*SliceStruct
 }
 
 func (self *propertySuite) TestLoadSliceAndContains(c *C) {
@@ -124,9 +125,63 @@ func (self *propertySuite) TestLoadSliceAndContains(c *C) {
 						},
 					},
 				},
+				"SliceOfStructPtr": &property{
+					Type: "array",
+					Items: &property{
+						Type:     "object",
+						Required: []string{"Value"},
+						Properties: map[string]*property{
+							"Value": &property{
+								Type: "string",
+							},
+						},
+					},
+				},
 			},
 
-			Required: []string{"SliceOfInterface", "SliceOfStruct"},
+			Required: []string{"SliceOfInterface", "SliceOfStruct", "SliceOfStructPtr"},
+		},
+	})
+}
+
+type Node struct {
+	Next *Node
+}
+
+type Tree struct {
+	Children []*Tree
+}
+
+type ExampleJSONTree struct {
+	Node Node
+	Tree Tree
+}
+
+func (self *propertySuite) TestLoadTree(c *C) {
+	j := &Document{}
+	j.Read(&ExampleJSONTree{})
+
+	c.Assert(*j, DeepEquals, Document{
+		Schema: "http://json-schema.org/schema#",
+		property: property{
+			Type: "object",
+			Properties: map[string]*property{
+				"Node": &property{
+					Type: "object",
+					Properties: map[string]*property{
+						"Next": &property{Type: "object"},
+					},
+					Required: []string{"Next"},
+				},
+				"Tree": &property{
+					Type: "object",
+					Properties: map[string]*property{
+						"Children": &property{Type: "object"},
+					},
+					Required: []string{"Children"},
+				},
+			},
+			Required: []string{"Node", "Tree"},
 		},
 	})
 }

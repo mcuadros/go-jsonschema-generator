@@ -144,6 +144,48 @@ func (self *propertySuite) TestLoadSliceAndContains(c *C) {
 	})
 }
 
+type Node struct {
+	Next *Node
+}
+
+type Tree struct {
+	Children []*Tree
+}
+
+type ExampleJSONTree struct {
+	Node Node
+	Tree Tree
+}
+
+func (self *propertySuite) TestLoadTree(c *C) {
+	j := &Document{}
+	j.Read(&ExampleJSONTree{})
+
+	c.Assert(*j, DeepEquals, Document{
+		Schema: "http://json-schema.org/schema#",
+		property: property{
+			Type: "object",
+			Properties: map[string]*property{
+				"Node": &property{
+					Type: "object",
+					Properties: map[string]*property{
+						"Next": &property{Type: "object"},
+					},
+					Required: []string{"Next"},
+				},
+				"Tree": &property{
+					Type: "object",
+					Properties: map[string]*property{
+						"Children": &property{Type: "object"},
+					},
+					Required: []string{"Children"},
+				},
+			},
+			Required: []string{"Node", "Tree"},
+		},
+	})
+}
+
 type ExampleJSONNestedStruct struct {
 	Struct struct {
 		Foo string

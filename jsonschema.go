@@ -6,6 +6,7 @@ package jsonschema
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -43,6 +44,18 @@ func (d *Document) String() string {
 	return string(json)
 }
 
+func PkgName(t reflect.Type) string {
+	var pkgName string
+	if t.Kind() == reflect.Struct {
+		pkgName = fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
+	} else if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
+		pkgName = fmt.Sprintf("%s.%s", t.Elem().PkgPath(), t.Elem().Name())
+	} else if t.Kind() == reflect.Slice {
+		pkgName = PkgName(t.Elem())
+	}
+	return pkgName
+}
+
 type property struct {
 	Type                 string               `json:"type,omitempty"`
 	Format               string               `json:"format,omitempty"`
@@ -75,7 +88,7 @@ func (p *property) read(t reflect.Type, opts tagOptions) {
 
 func (p *property) readFromSlice(t reflect.Type, opts tagOptions) {
 	jsType, _, kind := getTypeFromMapping(t.Elem())
-	// fmt.Println("readFromSlice", jsType, kind)
+
 	if kind == reflect.Uint8 {
 		p.Type = "string"
 	} else if jsType != "" {
@@ -103,6 +116,8 @@ func (p *property) readFromStruct(t reflect.Type) {
 	p.Properties = make(map[string]*property, 0)
 	p.AdditionalProperties = false
 
+	pkgName := PkgName(t)
+
 	count := t.NumField()
 	for i := 0; i < count; i++ {
 		field := t.Field(i)
@@ -129,11 +144,17 @@ func (p *property) readFromStruct(t reflect.Type) {
 		}
 
 		p.Properties[name] = &property{}
-		p.Properties[name].read(field.Type, opts)
-
 		if !opts.Contains("omitempty") {
 			p.Required = append(p.Required, name)
 		}
+
+		// 不支持树状结构的递归
+		if PkgName(field.Type) == pkgName {
+			p.Properties[name].Type = "object"
+			continue
+		}
+		p.Properties[name].read(field.Type, opts)
+
 	}
 }
 
